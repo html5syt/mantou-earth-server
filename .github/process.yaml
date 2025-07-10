@@ -1,0 +1,109 @@
+name: Download and Process Satellite Images
+
+on:
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [schedule-run]
+    
+env:
+  RESOLUTIONS: "2160,1080"  # 多个分辨率用逗号分隔（示例值）
+  RETENTION_DAYS: 1         # 图片保留天数
+
+jobs:
+  process-images:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up ImageMagick
+      run: sudo apt-get install -y imagemagick
+
+    - name: Calculate image time
+      id: timecalc
+      run: |
+        # 计算图片时间（当前UTC时间减去30分钟，取整到上10分钟）
+        IMAGE_TIME=$(date -u -d "30 minutes ago" +"%Y-%m-%d %H:%M")
+        IMAGE_TIME=${IMAGE_TIME%?}0  # 分钟数取整到10的倍数
+        
+        # 格式化为所需变量
+        DIR_DATE=$(date -u -d "$IMAGE_TIME" +"%Y-%m-%d")
+        URL_DATE=$(date -u -d "$IMAGE_TIME" +"%Y/%m/%d")
+        TIME_PART=$(date -u -d "$IMAGE_TIME" +"%H%M")
+        
+        echo "DIR_DATE=$DIR_DATE" >> $GITHUB_ENV
+        echo "URL_DATE=$URL_DATE" >> $GITHUB_ENV
+        echo "TIME_PART=$TIME_PART" >> $GITHUB_ENV
+        echo "Calculated image time: $DIR_DATE $TIME_PART"
+
+    - name: Process each resolution
+      run: |
+        IFS=',' read -ra RES_ARRAY <<< "$RESOLUTIONS"
+        for RES in "${RES_ARRAY[@]}"; do
+          # 计算分辨率倍数 (d值)
+          D=$(( (RES + 275) / 550 ))  # 四舍五入到最近的整数
+          D=$(( D < 1 ? 1 : D ))      # 最小值为1
+          D=$(( D > 20 ? 20 : D ))    # 最大值为20
+          
+          echo "Processing resolution: ${RES}px (d=${D})"
+          
+          # 创建临时目录
+          TEMP_DIR="temp_${RES}"
+          mkdir -p "$TEMP_DIR"
+          
+          # 下载所有分块图片
+          for (( Y=0; Y<D; Y++ )); do
+            for (( X=0; X<D; X++ )); do
+              URL="http://himawari8-dl.nict.go.jp/himawari8/img/D531106/${D}d/550/${URL_DATE}/${TIME_PART}00_${X}_${Y}.png"
+              wget -q -O "$TEMP_DIR/${X}_${Y}.png" "$URL"
+            done
+          done
+          
+          # 拼接图片并转换为webp
+          OUTPUT_DIR="$DIR_DATE"
+          mkdir -p "$OUTPUT_DIR"
+          montage -geometry +0+0 -tile ${D}x${D} "$TEMP_DIR"/*.png - | convert - -quality 85 "$OUTPUT_DIR/${TIME_PART}_${RES}.webp"
+          
+          # 清理临时文件
+          rm -rf "$TEMP_DIR"
+        done
+
+    - name: Commit processed images
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Add satellite images for $DIR_DATE $TIME_PART" || echo "No changes to commit"
+        git push
+
+  clean-old-images:
+    runs-on: ubuntu-latest
+    needs: process-images
+    if: ${{ always() }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Remove old images
+      run: |
+        # 计算截止日期（保留天数）
+        CUTOFF_DATE=$(date -d "$RETENTION_DAYS days ago" +"%Y-%m-%d")
+        echo "Removing images older than $CUTOFF_DATE"
+        
+        # 查找并删除旧目录
+        find . -maxdepth 1 -type d -name "202*" | while read -r dir; do
+          dir_date=$(basename "$dir")
+          if [[ "$dir_date" < "$CUTOFF_DATE" ]]; then
+            echo "Removing directory: $dir"
+            rm -rf "$dir"
+          fi
+        done
+
+    - name: Commit cleaned changes
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Remove images older than $RETENTION_DAYS days" || echo "No changes to commit"
+        git push

@@ -1,7 +1,0 @@
-name = "mantou-earth"
-main = "src/worker.js"
-workers_dev = true
-compatibility_date = "2025-07-10"
-
-[observability]
-enabled = true
