@@ -30,6 +30,7 @@ def download_tile(d, date, time_str, x, y):
         f"{d}d/550/{date.year}/{date.month:02d}/{date.day:02d}/"
         f"{time_str}00_{x}_{y}.png"
     )
+    print("URL:",url)
     response = requests.get(url)
     response.raise_for_status()
     return Image.open(BytesIO(response.content))
