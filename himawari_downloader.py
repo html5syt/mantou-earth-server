@@ -13,8 +13,8 @@ import math
 def round_down_time():
     """获取当前GMT时间并向上取整到上一个10分钟"""
     now = datetime.utcnow()
-    # 减去30分钟延迟
-    adjusted = now - timedelta(minutes=30)
+    # 减去40分钟延迟
+    adjusted = now - timedelta(minutes=40)
     # 向下取整到10分钟
     minute = (adjusted.minute // 10) * 10
     return adjusted.replace(minute=minute, second=0, microsecond=0)
