@@ -35,11 +35,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: Pictures
-        # 如果分支不存在，创建基于最新提交的新分支
         path: ${{ github.workspace }}/pictures
 
-    - name: Set up ImageMagick
-      run: sudo apt-get update && sudo apt-get install -y imagemagick
+    - name: Set up FFmpeg
+      run: |
+        # FFmpeg 通常已预装，但确保安装最新版
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
 
     - name: Calculate image time
       id: timecalc
@@ -61,6 +63,10 @@ jobs:
     - name: Process each resolution
       run: |
         cd pictures  # 进入Pictures分支的工作目录
+        
+        # 安装用于WebP转换的依赖
+        sudo apt-get install -y webp
+        
         IFS=',' read -ra RES_ARRAY <<< "$RESOLUTIONS"
         for RES in "${RES_ARRAY[@]}"; do
           # 计算分辨率倍数 (d值)
@@ -82,13 +88,55 @@ jobs:
             done
           done
           
-          # 拼接图片并转换为webp
+          # 使用FFmpeg拼接图片
           OUTPUT_DIR="$DIR_DATE"
           mkdir -p "$OUTPUT_DIR"
-          montage -geometry +0+0 -tile ${D}x${D} "$TEMP_DIR"/*.png - | convert - -quality 85 "$OUTPUT_DIR/${TIME_PART}_${RES}.webp"
+          
+          # 创建FFmpeg拼接脚本
+          cat > ffmpeg_script.txt <<EOF
+          color=size=${D}x${D}:c=black [base];
+          EOF
+          
+          # 添加所有图片到滤镜
+          for (( Y=0; Y<D; Y++ )); do
+            for (( X=0; X<D; X++ )); do
+              echo "[$((Y*D+X)):v] setpts=PTS-STARTPTS, scale=550:550 [tile$((Y*D+X))];" >> ffmpeg_script.txt
+            done
+          done
+          
+          # 添加网格布局
+          echo -n "[base]" >> ffmpeg_script.txt
+          for (( Y=0; Y<D; Y++ )); do
+            for (( X=0; X<D; X++ )); do
+              echo -n "[tile$((Y*D+X))] overlay=shortest=1:x=$((X*550)):y=$((Y*550))" >> ffmpeg_script.txt
+              if [[ $Y -ne $((D-1)) || $X -ne $((D-1)) ]]; then
+                echo -n " [tmp$((Y*D+X))];" >> ffmpeg_script.txt
+                echo -n "\n[tmp$((Y*D+X))]" >> ffmpeg_script.txt
+              fi
+            done
+          done
+          echo " [out]" >> ffmpeg_script.txt
+          
+          # 构建输入文件列表
+          INPUT_FILES=""
+          for (( Y=0; Y<D; Y++ )); do
+            for (( X=0; X<D; X++ )); do
+              INPUT_FILES+=" -i $TEMP_DIR/${X}_${Y}.png"
+            done
+          done
+          
+          # 运行FFmpeg拼接
+          ffmpeg -y $INPUT_FILES \
+            -filter_complex_script ffmpeg_script.txt \
+            -map "[out]" \
+            -frames:v 1 \
+            "$TEMP_DIR/combined.png"
+          
+          # 转换为WebP格式
+          cwebp -quiet -q 85 "$TEMP_DIR/combined.png" -o "$OUTPUT_DIR/${TIME_PART}_${RES}.webp"
           
           # 清理临时文件
-          rm -rf "$TEMP_DIR"
+          rm -rf "$TEMP_DIR" ffmpeg_script.txt
         done
 
     - name: Commit processed images to Pictures branch
