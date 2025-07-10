@@ -36,19 +36,30 @@ jobs:
         RESOLUTIONS: ${{ env.RESOLUTIONS }}
         KEEP_DAYS: ${{ env.KEEP_DAYS }}
         
-    - name: Commit to Picture branch
+- name: Commit to Picture branch
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@users.noreply.github.com"
         
         # 切换到Picture分支（不存在则创建）
-        git checkout -B Picture 2>/dev/null || git checkout --orphan Picture
-        git rm -rf .  # 清空当前分支内容
+        if git show-ref --quiet refs/heads/Picture; then
+          git checkout Picture
+        else
+          git checkout --orphan Picture
+          git rm -rf --quiet .
+        fi
         
-        # 添加新生成的文件
+        # 添加新生成的文件（直接复制，不使用移动操作）
         for dir in */; do
-          [ -d "$dir" ] && mv "$dir" .
+          if [ -d "$dir" ]; then
+            # 复制目录内容而不是移动目录
+            cp -r "$dir"/* .
+            # 删除原始目录
+            rm -rf "$dir"
+          fi
         done
+        
+        # 添加所有文件
         git add .
         
         # 提交并推送
