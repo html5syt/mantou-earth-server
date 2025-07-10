@@ -48,16 +48,14 @@ jobs:
           git checkout Picture
         else
           git checkout --orphan Picture
-          git rm -rf --quiet .
+          git rm -rf --quiet .  # 清空当前分支内容
         fi
         
-        # 添加新生成的文件（直接复制，不使用移动操作）
-        for dir in */; do
-          if [ -d "$dir" ]; then
-            # 复制目录内容而不是移动目录
-            cp -r "$dir"/* .
-            # 删除原始目录
-            rm -rf "$dir"
+        # 复制所有新生成的目录和文件
+        for item in *; do
+          if [ -d "$item" ] || [ -f "$item" ]; then
+            # 复制目录或文件到当前分支
+            cp -r "$item" .
           fi
         done
         
@@ -65,5 +63,9 @@ jobs:
         git add .
         
         # 提交并推送
-        git commit -m "Update satellite images: $(date -u +'%Y-%m-%d %H:%M')"
-        git push -f origin Picture
+        if git diff-index --quiet HEAD --; then
+          echo "没有变化，无需提交"
+        else
+          git commit -m "Update satellite images: $(date -u +'%Y-%m-%d %H:%M')"
+          git push -f origin Picture
+        fi
