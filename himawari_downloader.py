@@ -67,24 +67,21 @@ def save_webp(image, path):
     image.save(path, 'WEBP', quality=85)
 
 def delete_old_images(base_dir, retention_days):
-    """删除超过保留期限的图片"""
+    """删除超过保留期限的图片目录"""
     cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
     for dir_name in os.listdir(base_dir):
         dir_path = os.path.join(base_dir, dir_name)
         if os.path.isdir(dir_path):
             try:
+                # 解析目录名为日期
                 dir_date = datetime.strptime(dir_name, "%Y-%m-%d")
                 if dir_date < cutoff_date:
-                    # 只删除目录中的图片文件，保留目录结构
-                    for file in os.listdir(dir_path):
-                        if file.endswith(".webp"):
-                            os.remove(os.path.join(dir_path, file))
-                    # 如果目录为空则删除目录
-                    if not os.listdir(dir_path):
-                        os.rmdir(dir_path)
-                    print(f"已清理旧图片: {dir_name}")
+                    # 删除整个过期目录
+                    shutil.rmtree(dir_path)
+                    print(f"已删除过期目录: {dir_name}")
             except ValueError:
                 continue  # 忽略非日期格式的目录
+
 
 def main():
     # 从环境变量获取配置
