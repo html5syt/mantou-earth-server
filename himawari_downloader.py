@@ -75,8 +75,14 @@ def delete_old_images(base_dir, retention_days):
             try:
                 dir_date = datetime.strptime(dir_name, "%Y-%m-%d")
                 if dir_date < cutoff_date:
-                    shutil.rmtree(dir_path)
-                    print(f"Deleted directory: {dir_name}")
+                    # 只删除目录中的图片文件，保留目录结构
+                    for file in os.listdir(dir_path):
+                        if file.endswith(".webp"):
+                            os.remove(os.path.join(dir_path, file))
+                    # 如果目录为空则删除目录
+                    if not os.listdir(dir_path):
+                        os.rmdir(dir_path)
+                    print(f"已清理旧图片: {dir_name}")
             except ValueError:
                 continue  # 忽略非日期格式的目录
 
