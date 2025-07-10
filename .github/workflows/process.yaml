@@ -48,7 +48,7 @@ jobs:
           git checkout Picture
         else
           git checkout --orphan Picture
-          #git rm -rf --quiet .  # 清空当前分支内容
+          git rm -rf --quiet .  # 清空当前分支内容
         fi
         
         # 复制所有新生成的目录和文件
