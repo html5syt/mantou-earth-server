@@ -7,11 +7,14 @@ from PIL import Image
 from io import BytesIO
 import math
 
+# session = requests.Session()
+# session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'})
+
 def round_down_time():
     """获取当前GMT时间并向上取整到上一个10分钟"""
     now = datetime.utcnow()
     # 减去30分钟延迟
-    adjusted = now - timedelta(minutes=30)
+    adjusted = now - timedelta(minutes=10)
     # 向下取整到10分钟
     minute = (adjusted.minute // 10) * 10
     return adjusted.replace(minute=minute, second=0, microsecond=0)
@@ -28,12 +31,15 @@ def get_nearest_d(resolution):
 def download_tile(d, date, time_str, x, y):
     """下载单个图片瓦片"""
     url = (
-        f"https://himawari8.nict.go.jp/img/D531106/"
+        f"https://himawari8-dl.nict.go.jp/himawari8/img/D531106/"
         f"{d}d/550/{date.year}/{date.month:02d}/{date.day:02d}/"
         f"{time_str}00_{x}_{y}.png"
     )
     print(f"Downloading: {url}")
-    response = requests.get(url)
+    # response = session.get(url,allow_redirects=False)
+    with requests.session() as session:
+        # session.max_redirects = 20
+        response = session.get(url,verify=False, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'})
     response.raise_for_status()
     return Image.open(BytesIO(response.content))
 

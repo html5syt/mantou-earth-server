@@ -2,6 +2,11 @@
 
 该仓库使用Github Actions自动下载Mantou Earth所需要的图片到Pictures分支。
 
+需要配置2个仓库变量：
+
+1. RESOLUTIONS：逗号分隔的分辨率列表（如 2160,1440,1080）
+2. KEEP_DAYS：图片保留天数（可选，默认1天）
+
 > 根目录中的prompt.txt为AI提示词，cron.js为cloudflare worker定时任务脚本，用于action精确定时。
 > 
 > 使用该定时脚本需要配置2个变量：GITHUB_REPO(yaml工作流对应的GitHub查看链接，去除GitHub.com前面的部分，例：sakurasep/qfnuLibraryBook/actions/workfIows/tomorrow.yml)、GITHUB_PAT(GitHub个人访问令牌,需要repo权限)。
