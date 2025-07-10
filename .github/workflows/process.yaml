@@ -5,6 +5,8 @@ on:
   repository_dispatch:
     types: [schedule-run]
 
+
+
 env:
   RESOLUTIONS: ${{ vars.RESOLUTIONS }}  # 在仓库变量中设置，如 "2160,1440"
   KEEP_DAYS: ${{ vars.KEEP_DAYS || 1 }}  # 默认保留1天
