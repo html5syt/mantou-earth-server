@@ -1,21 +1,42 @@
 name: Download and Process Satellite Images
 
 on:
-on:
   workflow_dispatch:
   repository_dispatch:
     types: [schedule-run]
     
 env:
-  RESOLUTIONS: "2160,1080"  # 多个分辨率用逗号分隔（示例值）
+  RESOLUTIONS: "2160,1080"  # 多个分辨率用逗号分隔
   RETENTION_DAYS: 1         # 图片保留天数
 
 jobs:
-  process-images:
+  setup-branch:
     runs-on: ubuntu-latest
+    outputs:
+      branch_exists: ${{ steps.check-branch.outputs.exists }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      
+    - name: Check if Pictures branch exists
+      id: check-branch
+      run: |
+        if git ls-remote --exit-code --heads origin "refs/heads/Pictures"; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+  process-images:
+    runs-on: ubuntu-latest
+    needs: setup-branch
+    steps:
+    - name: Checkout Pictures branch or create
+      uses: actions/checkout@v4
+      with:
+        ref: Pictures
+        # 如果分支不存在，创建基于最新提交的新分支
+        path: ${{ github.workspace }}/pictures
 
     - name: Set up ImageMagick
       run: sudo apt-get install -y imagemagick
@@ -39,6 +60,7 @@ jobs:
 
     - name: Process each resolution
       run: |
+        cd pictures  # 进入Pictures分支的工作目录
         IFS=',' read -ra RES_ARRAY <<< "$RESOLUTIONS"
         for RES in "${RES_ARRAY[@]}"; do
           # 计算分辨率倍数 (d值)
@@ -69,24 +91,36 @@ jobs:
           rm -rf "$TEMP_DIR"
         done
 
-    - name: Commit processed images
+    - name: Commit processed images to Pictures branch
       run: |
+        cd pictures
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         git add .
-        git commit -m "Add satellite images for $DIR_DATE $TIME_PART" || echo "No changes to commit"
-        git push
+        
+        # 根据分支是否已存在决定提交消息
+        if [ "${{ needs.setup-branch.outputs.branch_exists }}" = "true" ]; then
+          git commit -m "Add satellite images for $DIR_DATE $TIME_PART" || echo "No changes to commit"
+        else
+          git commit -m "Initial commit: Create Pictures branch with satellite images"
+        fi
+        
+        git push origin Pictures
 
   clean-old-images:
     runs-on: ubuntu-latest
-    needs: process-images
-    if: ${{ always() }}
+    needs: [setup-branch, process-images]
+    if: ${{ always() && needs.setup-branch.outputs.branch_exists == 'true' }}
     steps:
-    - name: Checkout repository
+    - name: Checkout Pictures branch
       uses: actions/checkout@v4
+      with:
+        ref: Pictures
+        path: ${{ github.workspace }}/pictures
 
     - name: Remove old images
       run: |
+        cd pictures
         # 计算截止日期（保留天数）
         CUTOFF_DATE=$(date -d "$RETENTION_DAYS days ago" +"%Y-%m-%d")
         echo "Removing images older than $CUTOFF_DATE"
@@ -100,10 +134,11 @@ jobs:
           fi
         done
 
-    - name: Commit cleaned changes
+    - name: Commit cleaned changes to Pictures branch
       run: |
+        cd pictures
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         git add .
         git commit -m "Remove images older than $RETENTION_DAYS days" || echo "No changes to commit"
-        git push
+        git push origin Pictures

@@ -1,6 +1,6 @@
 # mantou-earth-server
 
-该仓库使用Github Actions自动下载Mantou Earth所需要的图片。
+该仓库使用Github Actions自动下载Mantou Earth所需要的图片到Pictures分支。
 
 > 根目录中的prompt.txt为AI提示词，cron.js为cloudflare worker定时任务脚本，用于action精确定时。
 > 
