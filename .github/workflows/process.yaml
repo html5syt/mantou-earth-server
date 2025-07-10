@@ -38,9 +38,12 @@ jobs:
         
     - name: Clone Pictures branch or create
       run: |
+        # 设置包含Token的仓库URL
+        REPO_URL="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
+        
         if [ "${{ needs.setup-branch.outputs.branch_exists }}" = "true" ]; then
           echo "Checking out existing Pictures branch"
-          git clone --branch Pictures --single-branch "https://github.com/$GITHUB_REPOSITORY.git" pictures
+          git clone --branch Pictures --single-branch "$REPO_URL" pictures
         else
           echo "Creating new Pictures branch"
           mkdir -p pictures
@@ -50,7 +53,7 @@ jobs:
           touch .gitkeep
           git add .gitkeep
           git commit -m "Initial commit for Pictures branch"
-          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git remote add origin "$REPO_URL"
           git push origin Pictures
           cd ..
         fi
@@ -149,6 +152,11 @@ jobs:
     - name: Commit processed images to Pictures branch
       run: |
         cd pictures
+        
+        # 设置包含Token的仓库URL
+        REPO_URL="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
+        
+        git remote set-url origin "$REPO_URL"
         git add .
         
         if [ "$(git status --porcelain)" ]; then
@@ -170,7 +178,9 @@ jobs:
         
     - name: Clone Pictures branch
       run: |
-        git clone --branch Pictures --single-branch "https://github.com/$GITHUB_REPOSITORY.git" pictures
+        # 设置包含Token的仓库URL
+        REPO_URL="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
+        git clone --branch Pictures --single-branch "$REPO_URL" pictures
 
     - name: Remove old images
       run: |
@@ -191,6 +201,11 @@ jobs:
     - name: Commit cleaned changes to Pictures branch
       run: |
         cd pictures
+        
+        # 设置包含Token的仓库URL
+        REPO_URL="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git"
+        git remote set-url origin "$REPO_URL"
+        
         git add .
         
         if [ "$(git status --porcelain)" ]; then
