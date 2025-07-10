@@ -53,11 +53,11 @@ jobs:
         
         # 复制所有新生成的目录和文件
         #for item in *; do
-         # if [ -d "$item" ] || [ -f "$item" ]; then
+          #if [ -d "$item" ] || [ -f "$item" ]; then
             # 复制目录或文件到当前分支
-           # cp -r "$item" .
-        #  fi
-      #  done
+            #cp -r "$item" .
+          #fi
+        #done
         
         # 添加所有文件
         git add .
