@@ -50,7 +50,6 @@ jobs:
         RESOLUTIONS: ${{ env.RESOLUTIONS }}
         RETENTION_DAYS: ${{ env.RETENTION_DAYS }}
       run: |
-        cd ..
         python himawari_downloader.py .
 
     - name: Commit and push changes
