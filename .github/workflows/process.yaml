@@ -54,6 +54,7 @@ jobs:
           git add .gitkeep
           git commit -m "Initial commit for Pictures branch"
           git remote add origin "$REPO_URL"
+          git pull origin Pictures
           git push origin Pictures
           cd ..
         fi
