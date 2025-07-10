@@ -38,7 +38,7 @@ jobs:
         RESOLUTIONS: ${{ env.RESOLUTIONS }}
         KEEP_DAYS: ${{ env.KEEP_DAYS }}
         
-- name: Commit to Picture branch
+    - name: Commit to Picture branch
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@users.noreply.github.com"
