@@ -28,7 +28,7 @@ def get_nearest_d(resolution):
 def download_tile(d, date, time_str, x, y):
     """下载单个图片瓦片"""
     url = (
-        f"http://himawari8-dl.nict.go.jp/img/D531106/"
+        f"http://himawari8.nict.go.jp/img/D531106/"
         f"{d}d/550/{date.year}/{date.month:02d}/{date.day:02d}/"
         f"{time_str}00_{x}_{y}.png"
     )
