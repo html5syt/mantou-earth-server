@@ -11,6 +11,8 @@
 > 
 > 使用该定时脚本需要配置2个变量：GITHUB_REPO(yaml工作流对应的GitHub查看链接，去除GitHub.com前面的部分，例：sakurasep/qfnuLibraryBook/actions/workfIows/tomorrow.yml)、GITHUB_PAT(GitHub个人访问令牌,需要repo权限)。
 
+**注：该脚本在GMT 0：00~0：40时生成的图片无法正常被同步。**
+
 ## 项目说明
 
 ### 关键功能说明：
