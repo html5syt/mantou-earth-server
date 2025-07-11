@@ -68,7 +68,7 @@ def save_webp(image, path):
 
 def delete_old_images(base_dir, retention_days):
     """删除超过保留期限的图片目录"""
-    cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+    cutoff_date = datetime.utcnow() - timedelta(days=retention_days,minutes=40)
     for dir_name in os.listdir(base_dir):
         dir_path = os.path.join(base_dir, dir_name)
         if os.path.isdir(dir_path):
